@@ -111,3 +111,10 @@ function printdie($value, $die = true, $beautify = false)
 
 	if ($die) die();
 }
+
+function auth()
+{
+	$ci =& get_instance();
+
+	return $ci->auth;
+}
