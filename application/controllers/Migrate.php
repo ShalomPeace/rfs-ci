@@ -1,6 +1,6 @@
 <?php 
 
-class Migration extends RFS_Controller 
+class Migrate extends RFS_Controller 
 {
 	public function __construct() 
 	{
