@@ -62,6 +62,13 @@ class RFS_Migration extends CI_Migration
 		$this->db->query("ALTER TABLE `{$table_name}` ADD INDEX (`{$field}`)");
 	}
 
+	public function addForeignKey($table, $foreignKey, $otherTable, $otherKey = null) 
+	{
+		$otherKey = is_null($otherKey) ? $foreignKey : $otherKey;
+
+		$this->db->query("ALTER TABLE `{$table}` ADD FOREIGN KEY (`{$foreignKey}`) REFERENCES `{$otherTable}`(`{$otherKey}`) ON DELETE RESTRICT ON UPDATE CASCADE;");
+	}
+
 	public function createTable($name) 
 	{
 		$this->dbforge->create_table($name);

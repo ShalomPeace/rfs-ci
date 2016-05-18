@@ -4,15 +4,13 @@ class Migration_Create_tables extends RFS_Migration
 {
 	private $tables = [
 		'department', 
-		'user', 
+		'role',
+		'user',
+		'userrole', 
 		'classification', 
-		'charge', 
-		'costcenter',
 		'request', 
 		'requestexpenditure', 
 		'requestattachment',
-		'requestcostcenter',
-
 	];
 
 	public function up() 
@@ -22,6 +20,18 @@ class Migration_Create_tables extends RFS_Migration
 
 			$this->$method($table);
 		}
+
+		$this->addForeignKey('department', 'added_by', 'user', 'user_id');
+		$this->addForeignKey('role', 'added_by', 'user', 'user_id');
+		$this->addForeignKey('user', 'department_id', 'department');
+		$this->addForeignKey('user_role', 'user_id', 'user');
+		$this->addForeignKey('user_role', 'role_id', 'role');
+		$this->addForeignKey('classification', 'added_by', 'user', 'user_id');
+		$this->addForeignKey('request', 'classification_id', 'classification');
+		$this->addForeignKey('request', 'department_id', 'department');
+		$this->addForeignKey('request', 'added_by', 'user', 'user_id');
+		$this->addForeignKey('request_expenditure', 'request_id', 'request');
+		$this->addForeignKey('request_attachment', 'request_id', 'request');
 	}
 
 	public function down() 
@@ -59,6 +69,35 @@ class Migration_Create_tables extends RFS_Migration
 		$this->createTable('department');
 
 		$this->addIndex('department', 'added_by');
+	}
+
+	public function createRoleTable() 
+	{
+		$this->addField([
+			'role_id'	=> [
+				'type'				=> 'INT', 
+				'unsigned'			=> TRUE, 
+				'auto_increment'	=> TRUE,
+			],
+			'name'		=> [
+				'type'				=> 'VARCHAR', 
+				'constraint'		=> '50', 
+			],
+			'permissions'	=> [
+				'type'				=> 'TEXT',
+				'default'			=> NULL,
+			],
+		]);
+
+		$this->addActive();
+		$this->addTimestamps();
+		$this->addUserReference();
+
+		$this->addKey('role_id', TRUE);
+
+		$this->createTable('role');
+
+		$this->addIndex('role', 'added_by');
 	}
 
 	public function createUserTable() 
@@ -102,6 +141,32 @@ class Migration_Create_tables extends RFS_Migration
 
 		$this->addIndex('user', 'department_id');
 		$this->addIndex('user', 'added_by');
+	}
+
+	public function createUserroleTable() 
+	{
+		$this->addField([
+			'ur_id'		=> [
+				'type'				=> 'INT', 
+				'unsinged'			=> TRUE, 
+				'auto_increment'	=> TRUE,
+			],
+			'user_id'	=> [
+				'type'				=> 'INT', 
+				'unsigned'			=> TRUE, 
+			],
+			'role_id'	=> [
+				'type'				=> 'INT', 
+				'unsigned'			=> TRUE,
+			],
+		]);
+
+		$this->addKey('ur_id', TRUE);
+
+		$this->createTable('user_role');
+
+		$this->addIndex('user_role', 'user_id');
+		$this->addIndex('user_role', 'role_id');
 	} 
 
 	public function createClassificationTable() 
@@ -136,55 +201,6 @@ class Migration_Create_tables extends RFS_Migration
 		$this->addIndex('classification', 'added_by');
 	}
 
-	public function createChargeTable() 
-	{
-		$this->addField([
-			'charge_id'		=> [
-				'type'				=> 'INT', 
-				'unsigned'			=> TRUE, 
-				'auto_increment'	=> TRUE,
-			], 
-			'name'			=> [
-				'type'				=> 'VARCHAR', 
-				'constraint'		=> 50, 
-			],
-		]);
-
-		$this->addActive();
-		$this->addTimestamps();
-		$this->addUserReference();
-
-		$this->addKey('charge_id', TRUE);
-
-		$this->createTable('charge');
-
-		$this->addIndex('charge', 'added_by');
-	}
-
-	public function createCostcenterTable() 
-	{
-		$this->addField([
-			'cc_id' 		=> [
-				'type'				=> 'INT', 
-				'unsigned'			=> TRUE, 
-				'auto_increment'	=> TRUE,
-			], 
-			'department_id'	=> [
-				'type'				=> 'INT', 
-				'unsigned'			=> TRUE, 
-			],
-		]);
-
-		$this->addTimestamps();
-		$this->addUserReference();
-
-		$this->addKey('cc_id', TRUE);
-
-		$this->createTable('cost_center');
-
-		$this->addIndex('cost_center', 'department_id');
-	}
-
 	public function createRequestTable() 
 	{
 		$this->addField([
@@ -209,18 +225,19 @@ class Migration_Create_tables extends RFS_Migration
 				'type'				=> 'INT', 
 				'unsigned'			=> TRUE, 
 			],
-			'charge_id'			=> [
+			'department_id'		=> [
 				'type'				=> 'INT', 
-				'unsigned'			=> TRUE, 
+				'unsigned'			=> TRUE,
+			],
+			'level'				=> [
+				'type'				=> 'TINYINT', 
+				'constraint'		=> 1, 
+				'default'			=> 0,
 			],
 			'status'			=> [
 				'type'				=> 'VARCHAR', 
 				'constraint'		=> 50, 
 			], 
-			'department_id'		=> [
-				'type'				=> 'INT', 
-				'unsigned'			=> TRUE,
-			],
 		]);
 
 		$this->addActive();
@@ -232,23 +249,79 @@ class Migration_Create_tables extends RFS_Migration
 		$this->createTable('request');
 
 		$this->addIndex('request', 'classification_id');
-		$this->addIndex('request', 'charge_id');
 		$this->addIndex('request', 'department_id');
 		$this->addIndex('request', 'added_by');
 	}
 
 	public function createRequestexpenditureTable() 
 	{
+		$this->addField([
+			'req_exp_id' 		=> [
+				'type'				=> 'INT', 
+				'unsigned'			=> TRUE, 
+				'auto_increment'	=> TRUE,  
+			],
+			'description'		=> [
+				'type'				=> 'TEXT', 
+			],
+			'currency'			=> [
+				'type'				=> 'VARCHAR', 
+				'constraint'		=> 5, 
+			],
+			'foreign_amount'	=> [
+				'type'				=> 'DECIMAL', 
+				'constraint'		=> '10,2', 
+				'default'			=> '0.00', 
+			],
+			'exchange_rate'		=> [
+				'type'				=> 'DECIMAL', 
+				'constraint'		=> '10,2', 
+				'default'			=> '0.00', 
+			],
+			'total_amount'		=> [
+				'type'				=> 'DECIMAL', 
+				'constraint'		=> '10,2', 
+				'default'			=> '0.00',
+			],
+			'request_id'		=> [
+				'type'				=> 'INT', 
+				'unsigned'			=> TRUE,
+			],
+		]);
 
+		$this->addTimestamps();
+
+		$this->addKey('req_exp_id', TRUE);
+
+		$this->createTable('request_expenditure');
+
+		$this->addIndex('request_expenditure', 'request_id');
 	}
 
 	public function createRequestattachmentTable() 
 	{
+		$this->addField([
+			'req_attach_id'	=> [
+				'type'				=> 'INT', 
+				'unsigned'			=> TRUE, 
+				'auto_increment'	=> TRUE, 
+			],
+			'file_name'		=> [
+				'type'				=> 'VARCHAR', 
+				'constraint'		=> 50, 
+			],
+			'request_id'	=> [
+				'type' 				=> 'INT', 
+				'unsigned'			=> TRUE,
+			],
+		]);
 
-	}
+		$this->addTimestamps();
 
-	public function createRequestcostcenterTable() 
-	{
+		$this->addKey('req_attach_id', TRUE);
 
+		$this->createTable('request_attachment');
+
+		$this->addIndex('request_attachment', 'request_id');
 	}
 }
